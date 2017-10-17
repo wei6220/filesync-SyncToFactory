@@ -22,9 +22,9 @@ namespace DownloadCenterRsyncBaseLog
             }
         }
 
-        public void ReadLogFileLine(int originalLogLength,bool newLogRecord)
+        public void ReadLogFileLine(int originalLogLength,bool oldLogRecord)
         {
-            if (newLogRecord)
+            if (oldLogRecord)
             {
                 rsyncReadLogFileLength = true;
                 rsyncReadLogFile = false;            
@@ -39,7 +39,7 @@ namespace DownloadCenterRsyncBaseLog
             }
         }
 
-        public void ReadLogFile(string logPath,bool newLog)
+        public void ReadLogFile(string logPath,bool readLogLength)
         {
             try
             {
@@ -50,7 +50,7 @@ namespace DownloadCenterRsyncBaseLog
                         using (FileStream file = new FileStream(logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             rsyncLogFile = File.ReadAllLines(logPath);
-                            ReadLogFileLine(rsyncLogFileLength, newLog);
+                            ReadLogFileLine(rsyncLogFileLength, readLogLength);
                             file.Close();
                         }
                     }

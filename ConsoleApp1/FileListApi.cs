@@ -1,7 +1,6 @@
 ﻿using CommonLibrary;
 using DownloadCenterRsyncSetting;
-using System.Collections.Generic;
-using System.Web.Script.Serialization;
+using System;
 
 namespace DownloadCenterFileListApi
 {
@@ -9,24 +8,24 @@ namespace DownloadCenterFileListApi
     {
         private static string FileListApiURL;
         private static string responseFileList;
-        private static List<dynamic> reponseFileApi;
-        public static List<dynamic> GetFileList()
+        private static string reponseFileApi;
+
+        public static string GetFileList()
         {
-            FileListApiURL = RsyncSetting.GetRsyncConf("RsyncSetting/FileListApi", "URL");
-            
-            HttpHelper http = new HttpHelper();
- 
-            responseFileList = http.Get(FileListApiURL);
-            if (responseFileList == null)
+            try
             {
-                reponseFileApi = null;
+                FileListApiURL = RsyncSetting.GetRsyncConf("RsyncSetting/FileListApi", "URL");
+
+                HttpHelper http = new HttpHelper();
+
+                responseFileList = http.Get(FileListApiURL);
             }
-            else
+            catch(Exception e)
             {
-                reponseFileApi = new JavaScriptSerializer().Deserialize<List<dynamic>>(responseFileList);
-                
+                Console.WriteLine(e.Message);
             }
-            return reponseFileApi;
+               
+            return responseFileList;
         }
     }
 }

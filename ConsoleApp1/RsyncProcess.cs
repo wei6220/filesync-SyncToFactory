@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace DownloadCenterRsyncProcess
@@ -27,6 +28,8 @@ namespace DownloadCenterRsyncProcess
                 }
 
             }
+
+
 
             foreach (Process processRsyncSchedule in Process.GetProcessesByName("DownloadCenterRsync"))
             {

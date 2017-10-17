@@ -25,7 +25,6 @@ namespace DownloadCenterRsyncSetting
             {
                 Console.WriteLine(e.Message);
             }
-
             return data;
         }
 
@@ -84,6 +83,9 @@ namespace DownloadCenterRsyncSetting
             public static string apiRsyncSourceFolder = "";
             public static string apiRsyncTargetFolder = "";
             public static string apiRsyncFileID = "";
+            public static string apiRsyncFileSize = "";
+            public static string apiRsyncFileStatus = "";
+            public static string apiRsyncFileMessage = "";
             public static string apiRsyncFileListCheckSum = "";
             public static string targetServerIP1 = "";
             public static string targetServerLogin = "";

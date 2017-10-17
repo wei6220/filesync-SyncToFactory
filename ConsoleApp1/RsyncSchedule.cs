@@ -10,9 +10,8 @@ namespace DownloadCenterRsyncSchedule
     class RsyncSchedule : RsyncBaseLog
     {
         private static string downloadcenterRsyncLogPath;
-        private static string downloadcenterRsyncLogFile;
         private int scheduleFinishTime,rsyncScheduleLogLength;
-        public bool scheduleFinishStatus,scheduleStartStatus,scheduleErrorStatus;
+        public bool scheduleFinishStatus,scheduleStartStatus;
         private string scheduleLogPath, scheduleLogFile, scheduleLogMessage  = "", logMessage;
         private string rsyncScheduleLogLine;
 
@@ -52,7 +51,6 @@ namespace DownloadCenterRsyncSchedule
                 logMessage =  "[Download Center][Exception]" + rsyncReadLogFileExceptionMessage;
             }
             
-
             if (logMessage != null)
             {
                 RsyncDateTime.WriteLog(logMessage);
@@ -69,45 +67,44 @@ namespace DownloadCenterRsyncSchedule
             if (scheduleFinishStatus && scheduleStartStatus)
             {
                 scheduleLogMessage = "[Download Center][Success]Check Last Rsync Schedule is Success Finish";
+                RsyncDateTime.WriteLog(scheduleLogMessage);
                 scheduleStaus = true;
             }
             else if (DownloadCenterLog.SearchSubString(ref rsyncScheduleLogLine, "Check Last Rsync Schedule is Success Finish"))
             {
-                scheduleLogMessage = "[Download Center][Success]Check Last Rsync Schedule is Success Finish";
                 scheduleStaus = true;
             }
             else if (scheduleFinishStatus != true && scheduleStartStatus)
             {
-                if (scheduleErrorStatus != true)
-                {
-                    rsyncScheduleError = rsyncScheduleLogLine.Split(new string[] { " || " }, StringSplitOptions.None)[0];
+               
+               rsyncScheduleError = rsyncScheduleLogLine.Split(new string[] { " || " }, StringSplitOptions.None)[0];
 
-                    scheduleTime = RsyncDateTime.DifferentDateTime(rsyncScheduleError);
+               scheduleTime = RsyncDateTime.DifferentDateTime(rsyncScheduleError);
 
-                    scheduleFinishTime = Convert.ToInt32(RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/Schedule", "CheckScheduleTime"));
+               scheduleFinishTime = Convert.ToInt32(RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/Schedule", "CheckScheduleTime"));
 
-                    if (scheduleTime / 60 >= scheduleFinishTime)
+               if (scheduleTime / 60 >= scheduleFinishTime)
+               {
+                    rsyncScheduleLogLength = -2;
+                    scheduleLogMessage = "[Download Center][Error]Check Last Rsync Schedule is Fail";
+                    RsyncDateTime.WriteLog(scheduleLogMessage);
+                    scheduleStaus = true;
+               }
+               else
+               {
+                    foreach (Process process in Process.GetProcessesByName("rsync"))
                     {
-                        rsyncScheduleLogLength = -2;
-                        scheduleLogMessage = "[Download Center][Error]Check Last Rsync Schedule is Fail";
+                        cmdRsyncExe++;
+                    }
+                    if (cmdRsyncExe >= 2)
+                    {
+                        cmdRsyncExe = 0;
+                        rsyncScheduleLogLength = -3;
+                        scheduleLogMessage = "";
                         scheduleStaus = true;
                     }
-                    else
-                    {
-                        foreach (Process process in Process.GetProcessesByName("rsync"))
-                        {
-                            cmdRsyncExe++;
-                        }
-                        if (cmdRsyncExe >= 2)
-                        {
-                            cmdRsyncExe = 0;
-                            rsyncScheduleLogLength = -3;
-                            scheduleLogMessage = "";
-                            scheduleStaus = true;
-                        }
-                        cmdRsyncExe = 0;
-                    }
-                }
+                    cmdRsyncExe = 0;
+               }
             }
             return scheduleStaus;
         }
@@ -123,10 +120,7 @@ namespace DownloadCenterRsyncSchedule
             {
                 scheduleFinishStatus = true;
             }
-            else if (DownloadCenterLog.SearchSubString(ref rsyncScheduleLogLine, "Check Last Rsync Schedule is Fail"))
-            {
-                scheduleErrorStatus = true;
-            }
+          
         }
 
 

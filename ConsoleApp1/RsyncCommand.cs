@@ -5,6 +5,7 @@ using DownloadCenterRsyncSetting;
 using DownloadCenterRsyncEmailTemplate;
 using DownloadCenterSendEmail;
 using DownloadCenterRsyncBaseCmd;
+using System.IO;
 
 namespace DownloadCenterRsyncCommand
 {
@@ -96,32 +97,64 @@ namespace DownloadCenterRsyncCommand
         }
 
 
-        public void ExeCommand(string apiSoucre, string apiTarget)
+        public void ExeCommand(string apiSoucre, string apiTarget,bool deleteStatus)
         {
-            string exeCommandTime = "",rsyncExe = "",rsyncExePath = "";
+            string exeCommandTime = "",rsyncExe = "",rsyncExePath = "", deleteFactoryTime ;
 
-            RsyncSetting.SettingRsyncExeConfig();
-            exeCommandTime = RsyncDateTime.GetTimeNow(RsyncDateTime.TimeFormatType.YearMonthDate);
-            rsyncExe = RsyncSetting.XmlSetting.exeCommand + " " + RsyncSetting.XmlSetting.exeCommandOption + " "
-                //+ RsyncSetting.XmlSetting.exeCommandFromSourceFolder + " " 
-                + apiSoucre + " " 
-                + apiTarget + " "
-                //+ RsyncSetting.XmlSetting.exeCommandToTargetFolder + " "
-                //+ "--delete" 
-                + " --log-file=" + RsyncSetting.XmlSetting.exeCommandLogPath + exeCommandTime + "_" + RsyncSetting.XmlSetting.exeCommandLogFile
-                + " --log-file-format=\"%i %o %f\"";
-            rsyncExePath = RsyncSetting.XmlSetting.exeCommandPath;
-
-            dynamic rsyncLog = new DownloadCenterLog();
-            rsyncLog.ReadRsyncLog(true);
-
-            RsyncDateTime.WriteLog("[Download Center][Success]Rsync Command Start");
-            BaseCommand(rsyncExe, rsyncExePath);
-
-            if (cmdRsyncFinish)
+            if (deleteStatus)
             {
-                rsyncLog.ReadRsyncLog(false);
-                RsyncDateTime.WriteLog("[Download Center][Success]Rsync Command Finish");
+                dynamic rsyncLog = new DownloadCenterLog();
+                deleteFactoryTime = RsyncDateTime.GetTimeNow(RsyncDateTime.TimeFormatType.YearMonthDateTime);
+                try
+                {
+                    Directory.Delete(apiTarget, true);
+                    DownloadCenterLog.RsyncHtmlLog = DownloadCenterLog.RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#FFFF99\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + deleteFactoryTime + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + apiSoucre + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">Delete From " + RsyncSetting.XmlSetting.exeCommandToTarget + "</font></td></tr>"; 
+                    rsyncLog.UpdateFileList("success","");
+                }
+                catch (Exception e)
+                {
+                    if (e.Message.Contains(apiTarget.Replace("/","\\")))
+                    {
+                        RsyncSetting.XmlSetting.apiRsyncFileSize = "-1";
+                        DownloadCenterLog.RsyncHtmlLog = DownloadCenterLog.RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#f28c9b\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + deleteFactoryTime + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + apiSoucre + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\"> No such file or directory" + "</font></td></tr>";
+                        rsyncLog.UpdateFileList("error", e.Message);
+                    }
+                    else
+                    {
+                        RsyncSetting.XmlSetting.apiRsyncFileSize = "-2";
+                        DownloadCenterLog.RsyncHtmlLog = DownloadCenterLog.RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#f28c9b\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + deleteFactoryTime + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + apiSoucre + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\"> networking error" + "</font></td></tr>";
+                        rsyncLog.UpdateFileList("error", e.Message);
+                    }
+
+                    Console.WriteLine(e.Message);
+                }
+                
+            }
+            else
+            {
+                RsyncSetting.SettingRsyncExeConfig();
+                exeCommandTime = RsyncDateTime.GetTimeNow(RsyncDateTime.TimeFormatType.YearMonthDate);
+                rsyncExe = RsyncSetting.XmlSetting.exeCommand + " " + RsyncSetting.XmlSetting.exeCommandOption + " "
+                    //+ RsyncSetting.XmlSetting.exeCommandFromSourceFolder + " " 
+                    + apiSoucre + " "
+                    + apiTarget + " "
+                    //+ RsyncSetting.XmlSetting.exeCommandToTargetFolder + " "
+                    //+ "--delete" 
+                    + " --log-file=" + RsyncSetting.XmlSetting.exeCommandLogPath + exeCommandTime + "_" + RsyncSetting.XmlSetting.exeCommandLogFile
+                    + " --log-file-format=\"%i %o %f\"";
+                rsyncExePath = RsyncSetting.XmlSetting.exeCommandPath;
+
+                dynamic rsyncLog = new DownloadCenterLog();
+                rsyncLog.ReadRsyncLog(true);
+
+                RsyncDateTime.WriteLog("[Download Center][Success]Rsync Command Start");
+                BaseCommand(rsyncExe, rsyncExePath);
+
+                if (cmdRsyncFinish)
+                {
+                    rsyncLog.ReadRsyncLog(false);
+                    RsyncDateTime.WriteLog("[Download Center][Success]Rsync Command Finish");
+                }
             }
         }
 

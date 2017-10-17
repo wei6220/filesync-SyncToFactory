@@ -4,6 +4,7 @@ using DownloadCenterRsyncDateTime;
 using System.IO;
 using DownloadCenterRsyncSetting;
 using DownloadCenterRsyncBaseLog;
+using DownloadCenterFileUpdateFinishApi;
 
 namespace DownloadCenterRsyncToStorSimpleLog
 {
@@ -23,6 +24,11 @@ namespace DownloadCenterRsyncToStorSimpleLog
         {
             get { return RsyncHtmlLog; }
         }
+
+        public string id { get; set; }
+        public string size { get; set; }
+        public string status { get; set; }
+        public string message { get; set; }
 
         List<string> RsyncType = new List<string>
         {
@@ -46,7 +52,10 @@ namespace DownloadCenterRsyncToStorSimpleLog
         private string DownloadCenterRsyncLog;
         private string rsyncLogFileName,rsyncLogPath,rsyncSourceFolder, rsyncTargetFolder;
         private string rsyncLogLocation,rsyncTargetHost,errorMessage;
-        private bool rsyncLogErrorStatus;
+        private string rsyncFileStatus, rsyncFileMessage;
+        private string fileID, fileSyncStatus, fileSize, fileSyncMessage;
+        private bool rsyncLogErrorStatus, rsyncLogErrorType;
+        private List<DownloadCenterLog> responseFileList;
 
         public bool ReadThreadsRsyncLog()
         {
@@ -147,6 +156,12 @@ namespace DownloadCenterRsyncToStorSimpleLog
 
             if (rsyncLogFile.Length - rsynLogLength > 0 && rsynLogLength != -1)
             {
+                if (responseFileList != null)
+                {
+                    responseFileList = new List<DownloadCenterLog>();
+                }
+
+                
                 for (int i = rsynLogLength; i < rsyncLogFile.Length; i++)
                 {
                     ReadErrorLog(i, rsyncLogFile);
@@ -157,10 +172,10 @@ namespace DownloadCenterRsyncToStorSimpleLog
             }
         }
 
-        public void ReadRsyncLog(bool rsyncLogNewRecord)
+        public void ReadRsyncLog(bool rsyncOldLogRecord)
         {   
             SettingReadRsyncLogFilePath();           
-            ReadLogFile(rsyncLogLocation,rsyncLogNewRecord);
+            ReadLogFile(rsyncLogLocation, rsyncOldLogRecord);
             rsynLogLength = rsyncLogFileLength;
             WriteRsyncLog();
         }
@@ -253,19 +268,16 @@ namespace DownloadCenterRsyncToStorSimpleLog
             return 0 <= ParentString.IndexOf(SubString, StringComparison.OrdinalIgnoreCase);
         }
 
-        public string[] ApiFileListID()
-        {
-            string[] rsyncFileIDList = null;
+        public void  UpdateFileList(string getSyncStatus,string syncErrorrMessage)
+        {      
+            responseFileList = new List<DownloadCenterLog>();
+            fileID = RsyncSetting.XmlSetting.apiRsyncFileID;
+            fileSize = RsyncSetting.XmlSetting.apiRsyncFileSize;
+            fileSyncStatus = getSyncStatus;
+            fileSyncMessage = syncErrorrMessage;
 
-            if (RsyncSetting.XmlSetting.apiRsyncFileListCheckSum != "")
-            {
-                if (RsyncSetting.XmlSetting.apiRsyncFileListCheckSum.Substring(RsyncSetting.XmlSetting.apiRsyncFileListCheckSum.Length - 1) == ",")
-                {
-                    RsyncSetting.XmlSetting.apiRsyncFileListCheckSum = RsyncSetting.XmlSetting.apiRsyncFileListCheckSum.Substring(0, RsyncSetting.XmlSetting.apiRsyncFileListCheckSum.Length - 1);
-                }
-                rsyncFileIDList = RsyncSetting.XmlSetting.apiRsyncFileListCheckSum.Split(new char[] { ',' });
-            }
-            return rsyncFileIDList;
+            responseFileList.Add(new DownloadCenterLog() { id = fileID, size = fileSize, status = fileSyncStatus, message = fileSyncMessage });
+            FileUpdateFinishApi.FileUpdateFinish(responseFileList);
         }
 
         public void GetRsyncDetail(string rsyncParseLogeType)
@@ -282,11 +294,10 @@ namespace DownloadCenterRsyncToStorSimpleLog
                         RsyncCommandStart + " " +
                         RsyncFileLog + " already Copy to " +
                         rsyncTargetHost;
-                    if (!SearchSubString(ref RsyncSetting.XmlSetting.apiRsyncFileListCheckSum,RsyncSetting.XmlSetting.apiRsyncFileID))
-                    {
-                        RsyncSetting.XmlSetting.apiRsyncFileListCheckSum = RsyncSetting.XmlSetting.apiRsyncFileListCheckSum.Replace(RsyncSetting.XmlSetting.apiRsyncFileID + ",","");
-                    }
-                    RsyncHtmlLog = RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#EEF4FD\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + RsyncCommandStart + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + RsyncSetting.XmlSetting.apiRsyncSourceFolder + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">already Copy to " + "Storage " + RsyncSetting.XmlSetting.apiRsyncTargetFolder + "</font></td></tr>";
+                    fileSyncStatus = "success";
+                    fileSyncMessage = "";
+                    RsyncHtmlLog = RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#EEF4FD\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + RsyncCommandStart + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + RsyncSetting.XmlSetting.apiRsyncSourceFolder + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">already Copy to " + RsyncSetting.XmlSetting.exeCommandToTarget + " " + RsyncSetting.XmlSetting.apiRsyncTargetFolder + "</font></td></tr>";
+                    UpdateFileList(fileSyncStatus, fileSyncMessage);
                 }
                 else if (SearchSubString(ref rsyncParseLogeType, "del"))
                 {
@@ -304,36 +315,48 @@ namespace DownloadCenterRsyncToStorSimpleLog
                         RsyncCommandStart + " " +
                         RsyncFileLog + " Don't Copy From " +
                         rsyncTargetHost;
+                    fileSyncStatus = "error";
+                    fileSyncMessage = "No such file or directory";
                     if (SearchSubString(ref RsyncSetting.XmlSetting.apiRsyncFileListCheckSum, RsyncSetting.XmlSetting.apiRsyncFileID))
                     {
                         RsyncSetting.XmlSetting.apiRsyncFileListCheckSum = RsyncSetting.XmlSetting.apiRsyncFileListCheckSum.Replace(RsyncSetting.XmlSetting.apiRsyncFileID + ",", "");
                     }
-                    RsyncHtmlLog = RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#f28c9b\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + RsyncCommandStart + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + RsyncSetting.XmlSetting.apiRsyncSourceFolder + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\"> No such file or directory  </font></td></tr>";
+                    if (!rsyncLogErrorType)
+                    {
+                        RsyncHtmlLog = RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#f28c9b\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + RsyncCommandStart + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + RsyncSetting.XmlSetting.apiRsyncSourceFolder + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\"> No such file or directory  </font></td></tr>";
+                        rsyncLogErrorType = true;
+                        UpdateFileList(fileSyncStatus, fileSyncMessage);
+                    }
+                    else
+                    {
+                        rsyncLogErrorType = false;
+                    }
+                    
                 }
-                else if(SearchSubString(ref rsyncParseLogeType, "failed: File exists"))
+                else if (SearchSubString(ref rsyncParseLogeType, "failed: File exists"))
                 {
                     RsyncHtmlLog = "<font color = \"#FF0000\" size = \"2\" face = \"Verdana, sans-serif\">Target folder is not exists";
                 }
-                else if(SearchSubString(ref rsyncParseLogeType, "failed: No such host or network path"))
+                else if (SearchSubString(ref rsyncParseLogeType, "failed: No such host or network path"))
                 {
-                   ParseRsyncLogDetail("rsync: change_dir ");
-                   errorList = RsyncLogDetail[0].Split(new string[] { "rsync: change_dir "}, StringSplitOptions.None);
-                   errorMessage = errorList[1].Replace("\"","");
-                   if(SearchSubString(ref RsyncSetting.XmlSetting.apiRsyncSourceFolder,errorMessage))
-                   {
+                    ParseRsyncLogDetail("rsync: change_dir ");
+                    errorList = RsyncLogDetail[0].Split(new string[] { "rsync: change_dir " }, StringSplitOptions.None);
+                    errorMessage = errorList[1].Replace("\"", "");
+                    if (SearchSubString(ref RsyncSetting.XmlSetting.apiRsyncSourceFolder, errorMessage))
+                    {
                         errorFile = RsyncSetting.XmlSetting.apiRsyncSourceFolder;
-                   }
-                   else
-                   {
+                    }
+                    else
+                    {
                         errorFile = errorMessage;
-                   }
+                    }
                     if (errorMessage != "" && SearchSubString(ref RsyncSetting.XmlSetting.apiRsyncFileListCheckSum, RsyncSetting.XmlSetting.apiRsyncFileID))
                     {
                         RsyncSetting.XmlSetting.apiRsyncFileListCheckSum = RsyncSetting.XmlSetting.apiRsyncFileListCheckSum.Replace(RsyncSetting.XmlSetting.apiRsyncFileID + ",", "");
                     }
                     RsyncHtmlLog = RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#f28c9b\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + RsyncCommandStart + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + RsyncSetting.XmlSetting.apiRsyncSourceFolder + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\"> No such file or directory  </font></td></tr>";
                 }
-                else if(SearchSubString(ref rsyncParseLogeType, "rsync: change_dir#3"))
+                else if (SearchSubString(ref rsyncParseLogeType, "rsync: change_dir#3"))
                 {
                     ParseRsyncLogDetail("rsync: change_dir#3");
                     DownloadCenterRsyncLog = "[Download Center][Error]" +
@@ -343,8 +366,20 @@ namespace DownloadCenterRsyncToStorSimpleLog
                     if (SearchSubString(ref RsyncSetting.XmlSetting.apiRsyncFileListCheckSum, RsyncSetting.XmlSetting.apiRsyncFileID))
                     {
                         RsyncSetting.XmlSetting.apiRsyncFileListCheckSum = RsyncSetting.XmlSetting.apiRsyncFileListCheckSum.Replace(RsyncSetting.XmlSetting.apiRsyncFileID + ",", "");
+
                     }
-                    RsyncHtmlLog = RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#f28c9b\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + RsyncCommandStart + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + RsyncSetting.XmlSetting.apiRsyncSourceFolder + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\"> No such file or directory  </font></td></tr>";
+                    if (!rsyncLogErrorType)
+                    {
+                        fileSyncStatus = "error";
+                        fileSyncMessage = "No such file or directory";
+                        RsyncHtmlLog = RsyncHtmlLog + "<tr><td width = \"22%\" bgcolor = \"#f28c9b\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\" >" + RsyncCommandStart + " </font></td><td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + RsyncSetting.XmlSetting.apiRsyncTargetFolder + "</font></td><td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\"> No such file or directory  </font></td></tr>";
+                        rsyncLogErrorType = true;
+                        UpdateFileList(fileSyncStatus, fileSyncMessage);
+                    }
+                    else
+                    {
+                        rsyncLogErrorType = false;
+                    }
                 }
                 else if (rsyncLogErrorStatus)
                 {
