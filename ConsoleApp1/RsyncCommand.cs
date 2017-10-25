@@ -19,7 +19,7 @@ namespace DownloadCenterRsyncCommand
             rsyncHtmlLog = htmlLogTemplate.Replace("{RsyncFromHost}", RsyncSetting.XmlSetting.exeCommandFromSource);
             rsyncHtmlLog = rsyncHtmlLog.Replace("{RsyncFromHostFolder}", RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncSource", "Folder").Replace("\\", "/"));
             rsyncHtmlLog = rsyncHtmlLog.Replace("{RsyncToDestination}", RsyncSetting.XmlSetting.exeCommandToTarget);
-            rsyncHtmlLog = rsyncHtmlLog.Replace("{RsyncToDestinationFolder}", targetFoldr);
+            rsyncHtmlLog = rsyncHtmlLog.Replace("{RsyncToDestinationFolder}", RsyncSetting.GetRsyncConf("RsyncSetting/NetworkDevice", "Path"));
             rsyncHtmlLog = rsyncHtmlLog.Replace("{RsyncLog}", htmlLogMessage);
             rsyncHtmlLog = rsyncHtmlLog.Replace("{count}", copyFile.ToString());
             rsyncHtmlLog = rsyncHtmlLog.Replace("{RsyncStartTime}", RsyncSetting.XmlSetting.exeCommandStartTime);
@@ -55,6 +55,10 @@ namespace DownloadCenterRsyncCommand
             else if (rsyncLogLength == -4)
             {
                 htmlLogMessage = "<font color = \"#c61919\" size = \"2\" face = \"Verdana, sans-serif\">Get Api File List is null";
+            }
+            else if (rsyncLogLength == -5)
+            {
+                htmlLogMessage = "<font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">No File Sync To Factory";
             }
             else
             {
@@ -135,11 +139,10 @@ namespace DownloadCenterRsyncCommand
                 RsyncSetting.SettingRsyncExeConfig();
                 exeCommandTime = RsyncDateTime.GetTimeNow(RsyncDateTime.TimeFormatType.YearMonthDate);
                 rsyncExe = RsyncSetting.XmlSetting.exeCommand + " " + RsyncSetting.XmlSetting.exeCommandOption + " "
-                    //+ RsyncSetting.XmlSetting.exeCommandFromSourceFolder + " " 
+
                     + apiSoucre + " "
                     + apiTarget + " "
-                    //+ RsyncSetting.XmlSetting.exeCommandToTargetFolder + " "
-                    //+ "--delete" 
+
                     + " --log-file=" + RsyncSetting.XmlSetting.exeCommandLogPath + exeCommandTime + "_" + RsyncSetting.XmlSetting.exeCommandLogFile
                     + " --log-file-format=\"%i %o %f\"";
                 rsyncExePath = RsyncSetting.XmlSetting.exeCommandPath;
