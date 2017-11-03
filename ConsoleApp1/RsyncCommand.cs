@@ -60,6 +60,10 @@ namespace DownloadCenterRsyncCommand
             {
                 htmlLogMessage = "<font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">No File Sync To Factory";
             }
+            else if (rsyncLogLength == -6)
+            {
+                htmlLogMessage = "<font color = \"#c61919\" size = \"2\" face = \"Verdana, sans-serif\">Please Go to Azure Portal Modify ResetFactory Webhook Due Date";
+            }
             else
             {
                 if (DownloadCenterLog.RsyncHtmlLog == null)

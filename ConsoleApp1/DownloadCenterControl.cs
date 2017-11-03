@@ -13,6 +13,9 @@ using System.Threading;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.IO;
+using System.Net.NetworkInformation;
+using System.Net;
+using DownloadCenterRsyncResetFactoryGatway;
 
 namespace DownloadCenter
 {
@@ -22,7 +25,7 @@ namespace DownloadCenter
         public static string apiFileSource, apiFileTarget, apiRsyncCreateTargetFolder;
         public static string apiRsyncSourceFolder, apiRsyncTargetFolder, emailRsyncTargetFolder;
         public static dynamic rsyncLog, rsyncExe, rsyncSchedule;
-        public static string[] apiFolderList,rsyncFileUpdateIDs;
+        public static string[] apiFolderList, rsyncFileUpdateIDs;
         public static bool apiTargetFolderStatus, apiGetApiStatus;
 
         static void Main(string[] args)
@@ -36,7 +39,7 @@ namespace DownloadCenter
 
             RsyncSetting.XmlSetting.exeCommandStartTime = RsyncDateTime.GetTimeNow(RsyncDateTime.TimeFormatType.YearSMonthSDateTimeChange);
             scheduleLogLength = rsyncSchedule.ReadScheduleLog();
-       
+
             RsyncDateTime.WriteLog("[Download Center][Success]Rsync Schedule Start");
             RsyncSetting.SettingRsyncExeConfig();
 
@@ -52,7 +55,7 @@ namespace DownloadCenter
                 }
                 catch
                 {
-                   DeleteProcess(rsyncLog);
+                    DeleteProcess(rsyncLog);
                 }
 
                 LoginTargetServer();
@@ -105,10 +108,10 @@ namespace DownloadCenter
                 Thread.Sleep(1000);
             }
 
-        
+
         }
 
-        private static void VerifyEmptyFolderList(ref int emptyFolderNum, int rysncFolderNum )
+        private static void VerifyEmptyFolderList(ref int emptyFolderNum, int rysncFolderNum)
         {
             if (apiTargetFolderStatus == false && rysncFolderNum == 0)
             {
@@ -153,7 +156,7 @@ namespace DownloadCenter
                     if (apiTargetFolderStatus)
                     {
                         if (apiFolderList[folderNum] == "" || apiFolderList[folderNum] == RsyncSetting.XmlSetting.exeCommandToTarget)
-                        {              
+                        {
                             continue;
                         }
                         else
@@ -165,7 +168,7 @@ namespace DownloadCenter
                     }
 
                     VerifyEmptyFolderList(ref emptyLine, folderNum);
-                } 
+                }
             }
         }
 
@@ -200,7 +203,7 @@ namespace DownloadCenter
 
         private static string FileList(ref string rsyncFolderList, bool targetFolderStatus)
         {
-            string rsyncFolder = "" ;
+            string rsyncFolder = "";
 
             try
             {
@@ -224,7 +227,7 @@ namespace DownloadCenter
                     rsyncFolder = apiRsyncSourceFolder;
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
@@ -256,13 +259,14 @@ namespace DownloadCenter
             string rsyncSourceFolder = "", rsyncTargetFolder = "", targetCreateFolderMessage, rsyncLogMessage = "";
             bool apiFileListStatus, apiSyncCheckStatus = false, apiDeleteCheckStatus = false;
 
+            RsyncSetting.SettingNetworkDevice();
+            
             if (fileList != null)
             {
                 apiFileListStatus = true;
 
-                RsyncSetting.SettingNetworkDevice();
                 IFolder rsyncFolder = new Folder();
-                rsyncLogMessage = rsyncFolder.CreateFolder(RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/DownloadCenterLog", "Path"), false);
+                rsyncLogMessage = rsyncFolder.CreateFolder(RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncLog", "Path"), false);
 
                 WriteFolderLog(rsyncLogMessage);
 
@@ -278,14 +282,14 @@ namespace DownloadCenter
                     RsyncSetting.XmlSetting.apiRsyncFileID = syncFileList["id"].ToString();
 
                     RsyncSetting.XmlSetting.apiRsyncFileListCheckSum = RsyncSetting.XmlSetting.apiRsyncFileListCheckSum + syncFileList["id"] + ",";
-                    
+
                     rsyncSourceFolder = FileList(ref apiFileSource, false);
                     rsyncTargetFolder = FileList(ref apiFileTarget, true);
                     try
                     {
                         FileInfo file = new FileInfo(rsyncSourceFolder);
                         RsyncSetting.XmlSetting.apiRsyncFileSize = file.Length.ToString();
-                        var factory_folder_create   = "/" + RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Folder");
+                        var factory_folder_create = "/" + RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Folder");
                         apiRsyncCreateTargetFolder = apiRsyncCreateTargetFolder.Replace(factory_folder_create, "");
                         targetCreateFolderMessage = rsyncFolder.CreateFolder(apiRsyncCreateTargetFolder, false);
                         WriteFolderLog(targetCreateFolderMessage);
@@ -300,12 +304,12 @@ namespace DownloadCenter
                         {
                             RsyncSetting.XmlSetting.apiRsyncFileSize = "-2";
                         }
-                    
+
                         Console.WriteLine(e.Message);
                     }
-                    var syncFactoryFolder = "/"+RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Folder");
+                    var syncFactoryFolder = "/" + RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Folder");
                     rsyncTargetFolder = rsyncTargetFolder.Replace(syncFactoryFolder, "");
-                    rsyncExe.ExeCommand(rsyncSourceFolder, rsyncTargetFolder,false);
+                    rsyncExe.ExeCommand(rsyncSourceFolder, rsyncTargetFolder, false);
                     fileIndex++;
                 }
 
@@ -324,7 +328,7 @@ namespace DownloadCenter
                     rsyncExe.ExeCommand(emailRsyncTargetFolder, apiRsyncCreateTargetFolder, true);
                     fileIndex++;
                 }
-                if(!apiSyncCheckStatus && !apiDeleteCheckStatus)
+                if (!apiSyncCheckStatus && !apiDeleteCheckStatus)
                 {
                     apiGetApiStatus = true;
                 }
@@ -345,13 +349,86 @@ namespace DownloadCenter
 
             if (login)
             {
-                rsyncLogLength = 0;
-                ResponseFileListApi();
+                var masterIP = "";
+                var targetIP = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "IP");
+                var testTargetIP = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "TestIP");
+                var testStatus = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Test");
+                
+                if(testStatus == "true")
+                {
+                    masterIP = testTargetIP;
+                }
+                else
+                {
+                    masterIP = targetIP;
+                }
+
+                if (GetRestFactoryStatus(masterIP))
+                {
+                    rsyncLogLength = 0;
+                    ResponseFileListApi();
+                    CheckRunBookDueDate();
+                }
+                else
+                {
+                    CheckRunBookDueDate();
+                    var getRunBookStatus = ResetFactoryApi.RestFactoryGatway();
+                    JObject getRunBookID = (JObject)JsonConvert.DeserializeObject(getRunBookStatus);
+
+                    if (testStatus == "true")
+                    {
+                        GetRestFactoryStatus(testTargetIP);
+                    }
+
+                    if (GetRestFactoryStatus(targetIP))
+                    {
+                        rsyncLogLength = 0;
+                        ResponseFileListApi();
+                    }
+                }
             }
             else
             {
                 rsyncLogLength = -1;
             }
+        }
+
+        public static void CheckRunBookDueDate()
+        {
+            var webhookDueDate = RsyncSetting.GetRsyncConf("RsyncSetting/RestFactoryGatway", "DueDate");
+            var dueDate = RsyncDateTime.DifferentDateTime(webhookDueDate);
+            var tmpLength = rsyncLogLength;
+            var notificationDueDate = Convert.ToInt32(RsyncSetting.GetRsyncConf("RsyncSetting/RestFactoryGatway", "Notification"));
+
+            if (-notificationDueDate < dueDate / 60)
+            {
+                rsyncLogLength = -6;
+                rsyncExe.SendEmailLog(rsyncLog, rsyncLogLength);
+                rsyncLogLength = tmpLength;
+            }
+        }
+
+        public static bool GetRestFactoryStatus(string getTargtIP)
+        {
+            bool getFactoryStatus;
+
+            var pingLimit = Convert.ToInt32(RsyncSetting.GetRsyncConf("RsyncSetting/Ping", "delay"));
+
+            Ping pingSender = new Ping();
+            PingReply reply = pingSender.Send(getTargtIP, pingLimit);
+
+            if (reply.Status == IPStatus.Success)
+            {
+                getFactoryStatus = true;
+                Console.WriteLine("Ping " + getTargtIP + " is success");
+            }
+            else
+            {
+                getFactoryStatus = false;
+                Console.WriteLine("Ping " + getTargtIP + " request out");
+            }
+
+            return getFactoryStatus;
         }
 
         public static void ResponseFileListApi()
