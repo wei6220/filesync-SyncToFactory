@@ -142,10 +142,10 @@ namespace DownloadCenterRsyncCommand
             {
                 RsyncSetting.SettingRsyncExeConfig();
                 exeCommandTime = RsyncDateTime.GetTimeNow(RsyncDateTime.TimeFormatType.YearMonthDate);
-                rsyncExe = RsyncSetting.XmlSetting.exeCommand + " " + RsyncSetting.XmlSetting.exeCommandOption + " "
+                rsyncExe = RsyncSetting.XmlSetting.exeCommand + " " + RsyncSetting.XmlSetting.exeCommandOption + " \""
 
-                    + apiSoucre + " "
-                    + apiTarget + " "
+                    + apiSoucre + "\" \""
+                    + apiTarget + "\" "
 
                     + " --log-file=" + RsyncSetting.XmlSetting.exeCommandLogPath + exeCommandTime + "_" + RsyncSetting.XmlSetting.exeCommandLogFile
                     + " --log-file-format=\"%i %o %f\"";

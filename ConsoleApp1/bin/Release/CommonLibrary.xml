@@ -1,0 +1,342 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CommonLibrary</name>
+    </assembly>
+    <members>
+        <member name="T:CommonLibrary.DBUtility.DbHelper">
+            <summary>
+            Dao元件
+            </summary>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.DbHelper.#ctor">
+            <summary>
+            init DbHelper
+            預設DB連線字串 => 設定檔section:DATABASE
+            </summary>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.DbHelper.#ctor(System.String)">
+            <summary>
+            init DbHelper
+            </summary>
+            <param name="connectionString">自訂DB連線字串</param>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.DbHelper.ExecuteSql(System.String,System.Collections.Generic.List{System.Data.IDbDataParameter})">
+            <summary>
+            執行sql command
+            </summary>
+            <param name="SQLString">sql字串</param>
+            <param name="SqlParams">參數</param>
+            <returns>影響筆數</returns>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.DbHelper.ExecuteSql(System.Collections.Generic.List{CommonLibrary.DBUtility.ExecuteModel})">
+            <summary>
+            執行sql command(多筆)
+            </summary>
+            <param name="executeList">sql執行model</param>
+            <returns>影響筆數</returns>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.DbHelper.QuerySql(System.String,System.Collections.Generic.List{System.Data.IDbDataParameter})">
+            <summary>
+            查詢sql command
+            </summary>
+            <param name="SqlString">sql字串</param>
+            <param name="SqlParams">參數</param>
+            <returns> 回傳List{Dictionary(string,object)} </returns>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.DbHelper.QuerySql(System.String,System.Collections.Generic.List{System.Data.IDbDataParameter},System.Type)">
+            <summary>
+            查詢sql command
+            </summary>
+            <param name="SqlString">sql字串</param>
+            <param name="SqlParams">參數</param>
+            <param name="modelType">資料模型</param>
+            <returns> List(資料模型) </returns>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.DbHelper.GetConnectionString(System.String,System.String)">
+            <summary>
+            取得連線字串
+            </summary>
+            <param name="section">設定檔section</param>
+            <param name="iniPath">設定檔位置</param>
+            <returns></returns>
+        </member>
+        <member name="T:CommonLibrary.DBUtility.ExecuteModel">
+            <summary>
+            sql execute model
+            </summary>
+        </member>
+        <member name="P:CommonLibrary.DBUtility.ExecuteModel.SqlString">
+            <summary>
+            執行字串
+            </summary>
+        </member>
+        <member name="P:CommonLibrary.DBUtility.ExecuteModel.SqlParams">
+            <summary>
+            執行參數
+            </summary>
+        </member>
+        <member name="T:CommonLibrary.DBUtility.IDbHelper">
+            <summary>
+            Dao interface
+            </summary>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.IDbHelper.ExecuteSql(System.String,System.Collections.Generic.List{System.Data.IDbDataParameter})">
+            <summary>
+            執行sql command
+            </summary>
+            <param name="SQLString">sql字串</param>
+            <param name="SqlParams">參數</param>
+            <returns>影響筆數</returns>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.IDbHelper.ExecuteSql(System.Collections.Generic.List{CommonLibrary.DBUtility.ExecuteModel})">
+            <summary>
+            執行sql command(多筆)
+            </summary>
+            <param name="executeList">sql執行model</param>
+            <returns>影響筆數</returns>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.IDbHelper.QuerySql(System.String,System.Collections.Generic.List{System.Data.IDbDataParameter})">
+            <summary>
+            查詢sql command
+            </summary>
+            <param name="SqlString">sql字串</param>
+            <param name="SqlParams">參數</param>
+            <returns> 回傳List{Dictionary(string,object)} </returns>
+        </member>
+        <member name="M:CommonLibrary.DBUtility.IDbHelper.QuerySql(System.String,System.Collections.Generic.List{System.Data.IDbDataParameter},System.Type)">
+            <summary>
+            查詢sql command
+            </summary>
+            <param name="SqlString">sql字串</param>
+            <param name="SqlParams">參數</param>
+            <param name="type">資料模型</param>
+            <returns> List(資料模型) </returns>
+        </member>
+        <member name="T:CommonLibrary.ExcelHelper">
+            <summary>
+            excel讀寫元件
+            </summary>
+        </member>
+        <member name="M:CommonLibrary.ExcelHelper.Read(System.String)">
+            <summary>
+            讀取excel檔並輸出成 Dataset
+            </summary>
+            <param name="filePath">檔案路徑</param>
+            <returns>DataSet</returns>
+        </member>
+        <member name="M:CommonLibrary.ExcelHelper.Read(System.String,System.Boolean)">
+            <summary>
+            (Read 多載+1) 
+            </summary>
+            <param name="filePath"></param>
+            <param name="isHDR">資料是否含表頭(default:true(含表頭))</param>
+            <returns>DataSet</returns>
+        </member>
+        <member name="M:CommonLibrary.ExcelHelper.Read(System.String,System.String)">
+            <summary>
+            讀取excel檔單一sheet
+            </summary>
+            <param name="filePath">檔案路徑</param>
+            <param name="sheetName">sheet名稱</param>
+            <returns>DataTable</returns>
+        </member>
+        <member name="M:CommonLibrary.ExcelHelper.Read(System.String,System.String,System.Boolean)">
+            <summary>
+            (Read 多載+1) 
+            </summary>
+            <param name="filePath">檔案路徑</param>
+            <param name="sheetName">sheet名稱</param>
+            <param name="isHDR"></param>
+            <returns>DataTable</returns>
+        </member>
+        <member name="M:CommonLibrary.ExcelHelper.ConvertToExcel(System.Data.DataTable,System.String)">
+            <summary>
+            DataTable 轉出 excel
+            </summary>
+            <param name="SourceDT">DataTable</param>
+            <param name="savePath">輸出路徑</param>
+        </member>
+        <member name="M:CommonLibrary.ExcelHelper.ConvertToExcel(System.Data.DataSet,System.String)">
+            <summary>
+            DataSet 轉出 excel
+            </summary>
+            <param name="SourceSet">DataSet</param>
+            <param name="savePath">輸出路徑</param>
+        </member>
+        <member name="M:CommonLibrary.ExcelHelper.ConvertToDataTable``1(System.Collections.Generic.IList{``0})">
+            <summary>
+            List 轉 DataTable
+            TODO:可移出excel class使用
+            </summary>
+            <typeparam name="T">data struct</typeparam>
+            <param name="data">data</param>
+            <returns>DataTable</returns>
+        </member>
+        <member name="T:CommonLibrary.Extensions.DataTableExtensions">
+            <summary>
+            DataTable 擴充方法
+            </summary>
+        </member>
+        <member name="M:CommonLibrary.Extensions.DataTableExtensions.ToList``1(System.Data.DataTable)">
+            <summary>
+            (擴充方法) DataTable -> model List
+            </summary>
+            <typeparam name="T">db model</typeparam>
+            <param name="table">資料源</param>
+            <returns>model list</returns>
+        </member>
+        <member name="M:CommonLibrary.Extensions.DataTableExtensions.ToList``1(System.Data.DataTable,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            (擴充方法) DataTable -> model List
+            若db columns與model properties不同,可自訂map表
+            </summary>
+            <typeparam name="T">db model</typeparam>
+            <param name="table">資料源</param>
+            <param name="mappings">自訂map表,format{model property,db column}</param>
+            <returns>model list</returns>
+        </member>
+        <member name="T:CommonLibrary.IniHelper">
+            <summary>
+            設定檔讀取元件
+            </summary>
+        </member>
+        <member name="M:CommonLibrary.IniHelper.GetFilePath">
+            <summary>
+            取得初始設定檔路徑(預設key:IniPath)
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:CommonLibrary.IniHelper.GetFilePath(System.String)">
+            <summary>
+            取得初始設定檔路徑
+            </summary>
+            <param name="appKey">自訂key</param>
+            <returns></returns>
+        </member>
+        <member name="M:CommonLibrary.IniHelper.GetValue(System.String,System.String)">
+            <summary>
+            取得設定值(預設路徑)
+            </summary>
+            <param name="section">設定檔section值</param>
+            <param name="key">設定檔key值</param>
+            <returns></returns>
+        </member>
+        <member name="M:CommonLibrary.IniHelper.GetValue(System.String,System.String,System.String)">
+            <summary>
+            取得設定值
+            </summary>
+            <param name="section">設定檔section值</param>
+            <param name="key">設定檔key值</param>
+            <param name="path">自訂設定檔位置</param>
+            <returns></returns>
+        </member>
+        <member name="M:CommonLibrary.IniHelper.GetValues(System.String)">
+            <summary>
+            取得設定值(預設路徑)
+            </summary>
+            <param name="section">設定檔section值</param>
+            <param name="key">設定檔key值</param>
+            <returns></returns>
+        </member>
+        <member name="M:CommonLibrary.IniHelper.GetValues(System.String,System.String)">
+            <summary>
+            取得設定值
+            </summary>
+            <param name="section">設定檔section值</param>
+            <param name="key">設定檔key值</param>
+            <param name="path">自訂設定檔位置</param>
+            <returns></returns>
+        </member>
+        <member name="T:CommonLibrary.LogHelper">
+            <summary>
+            log讀寫元件
+            </summary>
+        </member>
+        <member name="M:CommonLibrary.LogHelper.Write(System.String)">
+            <summary>
+            寫入log
+            </summary>
+            <param name="logStr">寫入字串</param>
+        </member>
+        <member name="M:CommonLibrary.LogHelper.Write(System.String,System.String)">
+            <summary>
+            寫入log
+            </summary>
+            <param name="logStr">寫入字串</param>
+            <param name="fileName">檔案名稱</param>
+        </member>
+        <member name="M:CommonLibrary.LogHelper.Write(System.String,System.String,System.String)">
+            <summary>
+            寫入log
+            </summary>
+            <param name="logStr">寫入字串</param>
+            <param name="fileName">檔案名稱</param>
+            <param name="dirPath">log目錄位置</param>
+        </member>
+        <member name="M:CommonLibrary.LogHelper.WriteException(System.String)">
+            <summary>
+            紀錄LogHelper 非預期錯誤
+            </summary>
+            <param name="exceptionStr">非預期錯誤說明</param>
+        </member>
+        <member name="T:CommonLibrary.XmlHelper">
+            <summary>
+            Xml讀寫元件
+            </summary>
+        </member>
+        <member name="M:CommonLibrary.XmlHelper.Load(System.String)">
+            <summary>
+            讀取xml檔案，並轉出xml string
+            </summary>
+            <param name="Path">檔案路徑</param>
+            <returns>xml string</returns>
+        </member>
+        <member name="M:CommonLibrary.XmlHelper.Read(System.String)">
+            <summary>
+            讀取xml檔案，並轉出list (根結點)
+            </summary>
+            <param name="Path">檔案路徑</param>
+            <returns>list</returns>
+        </member>
+        <member name="M:CommonLibrary.XmlHelper.Read(System.String,System.String)">
+            <summary>
+            讀取xml檔案，並轉出list
+            </summary>
+            <param name="Path">檔案路徑</param>
+            <param name="xPath">自訂節點</param>
+            <returns>list</returns>
+        </member>
+        <member name="M:CommonLibrary.XmlHelper.ReadXml(System.String,System.String)">
+            <summary>
+            讀取xml字串，並轉出list
+            </summary>
+            <param name="XmlStr">xml字串</param>
+            <param name="XPath">自訂節點</param>
+            <returns>list</returns>
+        </member>
+        <member name="M:CommonLibrary.XmlHelper.ExtractXml(System.String,System.String)">
+            <summary>
+            自傳入的xml字串內，擷取子節點字串
+            </summary>
+            <param name="XmlStr">xml字串</param>
+            <param name="XPath">欲擷取的節點</param>
+            <returns>string</returns>
+        </member>
+        <member name="M:CommonLibrary.XmlHelper.Find(System.Collections.IList,System.String)">
+            <summary>
+            找尋List中的節點 
+            </summary>
+            <param name="TargetList">target source</param>
+            <param name="TargetValue">target key</param>
+            <returns>target value(依第一次找的回傳)</returns>
+        </member>
+        <member name="M:CommonLibrary.XmlHelper.ResolveNode(System.Xml.XmlNodeList)">
+            <summary>
+            解析節點
+            </summary>
+            <param name="nodes">節點List</param>
+            <returns>object(格式: List{keyvalue})</returns>
+        </member>
+    </members>
+</doc>

@@ -32,7 +32,8 @@ namespace DownloadCenterSendEmail
             HtmlLogMessage = "{ 'subject' : '" + EmailSubjectContent + "','content' : '" + html + "', 'To':[" + emailCC + "],'Cc':'null', 'Bcc':'null'}";
             HttpHelper http = new HttpHelper();
             responseSendEmail = http.Post(EmailURL, HtmlLogMessage, HttpHelper.ContnetTypeEnum.Json);
-
+            
+            responseSendEmail = null;
             if (responseSendEmail == null)
             {
                 downloadcenterRsyncEmailLog = "[Download Center][Error]Email Send fail";
