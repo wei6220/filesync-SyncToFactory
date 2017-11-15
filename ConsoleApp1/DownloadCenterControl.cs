@@ -349,20 +349,11 @@ namespace DownloadCenter
 
             if (login)
             {
-                var masterIP = "";
                 var targetIP = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "IP");
                 var testTargetIP = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "TestIP");
-                var testStatus = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Test");
-                
-                if(testStatus == "true")
-                {
-                    masterIP = testTargetIP;
-                }
-                else
-                {
-                    masterIP = targetIP;
-                }
+                bool isTest = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Test").ToLower() == "true" ? true : false;
 
+                var masterIP = isTest ? testTargetIP : targetIP;
                 if (GetRestFactoryStatus(masterIP))
                 {
                     rsyncLogLength = 0;
@@ -375,10 +366,10 @@ namespace DownloadCenter
                     var getRunBookStatus = ResetFactoryApi.RestFactoryGatway();
                     JObject getRunBookID = (JObject)JsonConvert.DeserializeObject(getRunBookStatus);
 
-                    if (testStatus == "true")
-                    {
-                        GetRestFactoryStatus(testTargetIP);
-                    }
+                    //if (testStatus == "true")
+                    //{
+                    //    GetRestFactoryStatus(testTargetIP);
+                    //}
 
                     if (GetRestFactoryStatus(targetIP))
                     {
@@ -421,11 +412,13 @@ namespace DownloadCenter
             {
                 getFactoryStatus = true;
                 Console.WriteLine("Ping " + getTargtIP + " is success");
+                RsyncDateTime.WriteLog("Ping " + getTargtIP + " is success");
             }
             else
             {
                 getFactoryStatus = false;
                 Console.WriteLine("Ping " + getTargtIP + " request out");
+                RsyncDateTime.WriteLog("Ping " + getTargtIP + " request out");
             }
 
             return getFactoryStatus;

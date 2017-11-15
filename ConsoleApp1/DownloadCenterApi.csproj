@@ -52,7 +52,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="CommonLibrary">
-      <HintPath>..\..\..\..\Documents\Visual Studio 2017\Projects\ConsoleApp1\ConsoleApp1\bin\Debug\CommonLibrary.dll</HintPath>
+      <HintPath>bin\Debug\CommonLibrary.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.IdentityModel.Clients.ActiveDirectory, Version=3.14.1.10, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.IdentityModel.Clients.ActiveDirectory.3.14.1\lib\net45\Microsoft.IdentityModel.Clients.ActiveDirectory.dll</HintPath>

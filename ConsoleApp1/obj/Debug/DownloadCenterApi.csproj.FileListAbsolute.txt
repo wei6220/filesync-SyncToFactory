@@ -41,3 +41,17 @@ C:\Users\howard.yu.MISD\Desktop\test1\ConsoleApp1\bin\Debug\Microsoft.IdentityMo
 C:\Users\howard.yu.MISD\Desktop\test1\ConsoleApp1\bin\Debug\Newtonsoft.Json.xml
 C:\Users\howard.yu.MISD\Desktop\test1\ConsoleApp1\obj\Debug\DownloadCenterApi.csprojResolveAssemblyReference.cache
 C:\Users\howard.yu.MISD\Desktop\test1\ConsoleApp1\obj\Debug\DownloadCenterApi.csproj.DownloadCenterRsync.exe.config
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\DownloadCenterRsync.exe.config
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\DownloadCenterRsync.exe
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\DownloadCenterRsync.pdb
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\Microsoft.IdentityModel.Clients.ActiveDirectory.dll
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\Microsoft.IdentityModel.Clients.ActiveDirectory.Platform.dll
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\Newtonsoft.Json.dll
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\Microsoft.IdentityModel.Clients.ActiveDirectory.pdb
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\Microsoft.IdentityModel.Clients.ActiveDirectory.xml
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\Microsoft.IdentityModel.Clients.ActiveDirectory.Platform.pdb
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\Microsoft.IdentityModel.Clients.ActiveDirectory.Platform.xml
+D:\Rsync\Factory\FileServer\ConsoleApp1\bin\Debug\Newtonsoft.Json.xml
+D:\Rsync\Factory\FileServer\ConsoleApp1\obj\Debug\DownloadCenterApi.csproj.DownloadCenterRsync.exe.config
+D:\Rsync\Factory\FileServer\ConsoleApp1\obj\Debug\DownloadCenterRsync.exe
+D:\Rsync\Factory\FileServer\ConsoleApp1\obj\Debug\DownloadCenterRsync.pdb
