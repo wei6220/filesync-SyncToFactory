@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace DownloadCenterRsyncBaseTime
+namespace DownloadCenter
 {
-    abstract class RsyncBaseTime
+    class RsyncDateTime 
     {
         public enum TimeFormatType
         {
@@ -14,8 +14,8 @@ namespace DownloadCenterRsyncBaseTime
             YearSMonthSDateTimeChange
         };
 
-         public static string GetTimeFormatType(TimeFormatType timeType)
-         {
+        public static string GetFormatType(TimeFormatType timeType)
+        {
             string dataTime = "";
 
             if (timeType == TimeFormatType.YearMonthDateTime)
@@ -44,27 +44,19 @@ namespace DownloadCenterRsyncBaseTime
             }
 
             return dataTime;
-         }
+        }
 
-         public static string GetTimeNow(TimeFormatType getTimeFormatType = TimeFormatType.YearMonthDateTime)
-         {
-            string rsyncCreateTime = "",rsyncDataTimeType = "";
-            DateTime timeStart;
+        public static string GetNow(TimeFormatType formatType = TimeFormatType.YearMonthDateTime)
+        {
+            return DateTime.Now.ToString(GetFormatType(formatType));
+        }
 
-            rsyncDataTimeType = GetTimeFormatType(getTimeFormatType);
-            timeStart = DateTime.Now;
-            rsyncCreateTime = ToStringDataTime(timeStart, rsyncDataTimeType);
-
-            return rsyncCreateTime;
-         }
-
-         public static string ToStringDataTime(DateTime getTimeStart, string getTimeStartFormat)
-         {
-            string rsyncDataTime = "";
-
-            rsyncDataTime = getTimeStart.ToString(getTimeStartFormat);
-
-            return rsyncDataTime;
-         }
+        public static double GetDiffSeconds(string oldTime)
+        {
+            DateTime sDate = Convert.ToDateTime(oldTime);
+            DateTime eDate = DateTime.Now;
+            TimeSpan dataTime = eDate - sDate;
+            return dataTime.TotalSeconds;
+        }
     }
 }

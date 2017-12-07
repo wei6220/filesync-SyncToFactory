@@ -1,447 +1,337 @@
 ﻿using System;
-using DownloadCenterRsyncDateTime;
-using DownloadCenterNetCommand;
-using DownloadCenterRsyncToStorSimpleLog;
-using DownloadCenterRsyncSchedule;
-using DownloadCenterConsoleIFolder;
-using DownloadCenterConsoleFolder;
-using DownloadCenterRsyncSetting;
-using DownloadCenterRsyncCommand;
-using DownloadCenterFileListApi;
 using System.Diagnostics;
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.IO;
 using System.Net.NetworkInformation;
-using System.Net;
-using DownloadCenterRsyncResetFactoryGatway;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace DownloadCenter
 {
     class DownloadCenterControl
     {
-        public static int rsyncLogLength;
-        public static string apiFileSource, apiFileTarget, apiRsyncCreateTargetFolder;
-        public static string apiRsyncSourceFolder, apiRsyncTargetFolder, emailRsyncTargetFolder;
-        public static dynamic rsyncLog, rsyncExe, rsyncSchedule;
-        public static string[] apiFolderList, rsyncFileUpdateIDs;
-        public static bool apiTargetFolderStatus, apiGetApiStatus;
-
         static void Main(string[] args)
         {
-            int scheduleLogLength;
-            string scheduleFinishStatus = "";
-
-            rsyncLog = new DownloadCenterLog();
-            rsyncExe = new RsyncCommand();
-            rsyncSchedule = new RsyncSchedule();
-
-            RsyncSetting.XmlSetting.exeCommandStartTime = RsyncDateTime.GetTimeNow(RsyncDateTime.TimeFormatType.YearSMonthSDateTimeChange);
-            scheduleLogLength = rsyncSchedule.ReadScheduleLog();
-
-            RsyncDateTime.WriteLog("[Download Center][Success]Rsync Schedule Start");
-            RsyncSetting.SettingRsyncExeConfig();
-
-            if (scheduleLogLength >= 0 || scheduleLogLength == -2)
+            RsyncSetting.SetConfigSettings();
+            RsyncSetting.RuntimeSettings.ScheduleStartTime = RsyncDateTime.GetNow(RsyncDateTime.TimeFormatType.YearSMonthSDateTimeChange);
+            Log.WriteLog("#######################################################################");
+            Log.WriteLog("Rsync schedule start.");
+            SyncResultRecords.Init();
+            if (CheckScheduleReady("DownloadCenterRsync"))
             {
                 try
                 {
-                    if (scheduleLogLength == -2)
+                    //1.取api list 
+                    var api = new ApiService();
+                    var result = api.GetFileList();
+                    if (string.IsNullOrEmpty(result))
+                        throw new Exception("Get file list api failed.");
+                    var fileList = JsonConvert.DeserializeObject<dynamic>(result);
+                    var syncDataList = (IEnumerable<dynamic>)fileList.syncdata;
+                    var delDataList = (IEnumerable<dynamic>)fileList.deletedata;
+                    Log.WriteLog("Will to deal records sync("+ syncDataList.Count() + ") + del("+ delDataList.Count() + ")");
+                    if (syncDataList.Count() + delDataList.Count() > 0)
                     {
-                        RsyncDateTime.WriteLog("[Download Center][Success]Kill Rsync Progress");
-                        DeleteProcess(rsyncLog);
-                    }
-                }
-                catch
-                {
-                    DeleteProcess(rsyncLog);
-                }
+                        //2.確認工廠連線
+                        if (RsyncSetting.Config.TargetServerTest
+                            || !CheckConnectionOK(RsyncSetting.Config.TargetServerIp))
+                        {
+                            Log.WriteLog("Reset factory vnet");
+                            api.RestFactoryGatway();
+                            if (!CheckConnectionOK(RsyncSetting.Config.TargetServerIp))
+                                throw new Exception("Connect to factory (IP:" + RsyncSetting.Config.TargetServerIp + ") failed.");
+                        }
 
-                LoginTargetServer();
+                        //3.確認StoreSimple連線
+                        var cmd = new NetCommand();
+                        if (!cmd.ExeLoginCmd())
+                            throw new Exception("Not login source server :" + RsyncSetting.Config.SourceServerIP);
+                        if (!cmd.ExeLoginFactoryCmd())
+                            throw new Exception("Not login target server :" + RsyncSetting.Config.TargetServerIp);
 
-                scheduleFinishStatus = "[Download Center][Success]Rsync Schedule Finish";
-            }
-            else
-            {
-                if (scheduleLogLength == -3)
-                {
-                    rsyncLogLength = -3;
-                    scheduleFinishStatus = "[Download Center][Waring]Rsync Schedule wait for anthor schedule is finsih";
-                }
-            }
+                        //4.rsync
+                        SyncData(syncDataList);
+                        DeleteData(delDataList);
 
-            rsyncExe.SendEmailLog(rsyncLog, rsyncLogLength);
-            RsyncDateTime.WriteLog(scheduleFinishStatus);
-        }
-
-        public static void DeleteProcess(dynamic multiThreadLog)
-        {
-            int processID = 0;
-            bool threadReadRsyncLogStatus;
-
-            Process currentProcess = Process.GetCurrentProcess();
-
-
-            foreach (Process processRsyncSchedule in Process.GetProcessesByName("DownloadCenterRsync"))
-            {
-                if (currentProcess.Id != processRsyncSchedule.Id)
-                {
-                    processRsyncSchedule.Kill();
-                }
-            }
-
-            foreach (Process processRsync in Process.GetProcessesByName("rsync"))
-            {
-                processID++;
-
-                if (processID >= 2)
-                {
-                    processRsync.Kill();
-                }
-
-            }
-
-
-            while (threadReadRsyncLogStatus = multiThreadLog.ReadThreadsRsyncLog())
-            {
-                Thread.Sleep(1000);
-            }
-
-
-        }
-
-        private static void VerifyEmptyFolderList(ref int emptyFolderNum, int rysncFolderNum)
-        {
-            if (apiTargetFolderStatus == false && rysncFolderNum == 0)
-            {
-                return;
-            }
-            else
-            {
-                if (apiFolderList[rysncFolderNum] == "")
-                {
-                    return;
-                }
-                else
-                {
-                    emptyFolderNum++;
-
-                    if (emptyFolderNum == 1)
-                    {
-                        return;
+                        if (SyncResultRecords.All().Count > 0)
+                            RsyncSetting.RuntimeSettings.RsyncResultMessage = GenerateResultMessage(SyncResultRecords.All());
                     }
                     else
                     {
-                        apiRsyncSourceFolder = apiRsyncSourceFolder + apiFolderList[rysncFolderNum] + "/";
+                        Log.WriteLog("No file need to be sync");
+                        RsyncSetting.RuntimeSettings.RsyncResultMessage =
+                            "<font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">"
+                            + "No file need to be sync </font>";
                     }
                 }
-            }
-        }
-
-        private static void GetRsyncFolder()
-        {
-            int emptyLine = 0;
-
-            for (int folderNum = 0; folderNum < apiFolderList.Length; folderNum++)
-            {
-                if (folderNum == apiFolderList.Length - 1)
+                catch (Exception e)
                 {
-                    apiRsyncSourceFolder = apiRsyncSourceFolder + apiFolderList[folderNum];
-                    apiRsyncTargetFolder = apiRsyncTargetFolder + apiFolderList[folderNum];
-                    emailRsyncTargetFolder = emailRsyncTargetFolder + apiFolderList[folderNum];
-                }
-                else
-                {
-                    if (apiTargetFolderStatus)
-                    {
-                        if (apiFolderList[folderNum] == "" || apiFolderList[folderNum] == RsyncSetting.XmlSetting.exeCommandToTarget)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            emailRsyncTargetFolder = emailRsyncTargetFolder + apiFolderList[folderNum] + "/";
-                            apiRsyncTargetFolder = apiRsyncTargetFolder + apiFolderList[folderNum] + "/";
-                            apiRsyncCreateTargetFolder = apiRsyncCreateTargetFolder + apiFolderList[folderNum] + "/";
-                        }
-                    }
-
-                    VerifyEmptyFolderList(ref emptyLine, folderNum);
-                }
-            }
-        }
-
-        private static void VerifyApiFileListFolder()
-        {
-            if (apiTargetFolderStatus)
-            {
-                apiRsyncCreateTargetFolder = RsyncSetting.XmlSetting.networkMountDevice + "/";
-
-                emailRsyncTargetFolder = RsyncSetting.XmlSetting.networkMountDevice;
-
-                apiRsyncTargetFolder = "/cygdrive/" + RsyncSetting.XmlSetting.networkMountDevice;
-                apiRsyncTargetFolder = apiRsyncTargetFolder.Replace(":", "");
-
-                if (apiRsyncTargetFolder.Substring(apiRsyncTargetFolder.Length - 1) == "/" ||
-                apiRsyncTargetFolder.Substring(apiRsyncTargetFolder.Length - 1) == "\\")
-                {
-                    apiRsyncCreateTargetFolder = apiRsyncCreateTargetFolder.Substring(0, apiRsyncCreateTargetFolder.Length - 1);
-
-                }
-                else
-                {
-                    apiRsyncCreateTargetFolder = apiRsyncCreateTargetFolder + "//";
-                    apiRsyncTargetFolder = apiRsyncTargetFolder + "/";
+                    Log.WriteLog(e.Message, Log.Type.Exception);
+                    RsyncSetting.RuntimeSettings.RsyncResultMessage =
+                            "<font color = \"#c61919\" size = \"2\" face = \"Verdana, sans-serif\">" + e.Message + "</font>";
                 }
             }
             else
             {
-                apiRsyncSourceFolder = "//" + RsyncSetting.XmlSetting.targetServerIP + "/";
+                Log.WriteLog("Wait for anoher schedule is finish", Log.Type.Failed);
+                RsyncSetting.RuntimeSettings.RsyncResultMessage =
+                    "<font color = \"#c61919\" size = \"2\" face = \"Verdana, sans-serif\">"
+                    + "Waiting for anoher schedule is finish</font>";
             }
+
+            Mail mail = new Mail();
+            mail.Send();
+            Log.WriteLog("Rsync schedule finish.");
         }
 
-        private static string FileList(ref string rsyncFolderList, bool targetFolderStatus)
+        private static bool CheckScheduleReady(string processName)
         {
-            string rsyncFolder = "";
-
+            bool isReady = true;
             try
             {
-                apiTargetFolderStatus = targetFolderStatus;
-
-                apiFolderList = rsyncFolderList.Split(new string[] { "\\", "/" }, StringSplitOptions.None);
-
-                VerifyApiFileListFolder();
-
-                GetRsyncFolder();
-
-
-                if (apiTargetFolderStatus)
+                Process currentProcess = Process.GetCurrentProcess();
+                foreach (Process processRsyncSchedule in Process.GetProcessesByName(processName))
                 {
-                    RsyncSetting.XmlSetting.apiRsyncTargetFolder = emailRsyncTargetFolder;
-                    rsyncFolder = apiRsyncTargetFolder;
+                    if (currentProcess.Id != processRsyncSchedule.Id)
+                        isReady = false;
                 }
-                else
-                {
-                    RsyncSetting.XmlSetting.apiRsyncSourceFolder = apiRsyncSourceFolder;
-                    rsyncFolder = apiRsyncSourceFolder;
-                }
+
+                if (!isReady)
+                    Log.WriteLog("The another DownloadCenter.exe is execute, wait for anoher schedule finish");
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Log.WriteLog(e.Message, Log.Type.Exception);
             }
-            return rsyncFolder;
+            return isReady;
         }
 
-        private static void WriteFolderLog(string logMessage)
+        private static bool CheckConnectionOK(string host)
         {
-            if (logMessage != "")
+            bool isConnect = false;
+            var timeout = Convert.ToInt32(RsyncSetting.Config.PingTimeout);
+            var repeat = Convert.ToInt32(RsyncSetting.Config.PingRepeat);
+            Ping ping = new Ping();
+            PingReply reply;
+            int count = 0;
+            while (!isConnect && count++ < repeat)
             {
-                RsyncDateTime.WriteLog(logMessage);
-            }
-        }
-
-        private static bool GetFileListApi()
-        {
-            var getFileList = FileListApi.GetFileList();
-            JObject fileList;
-
-            if (getFileList != null)
-            {
-                fileList = (JObject)JsonConvert.DeserializeObject(getFileList);
-            }
-            else
-            {
-                fileList = null;
-            }
-            int fileIndex = 0;
-            string rsyncSourceFolder = "", rsyncTargetFolder = "", targetCreateFolderMessage, rsyncLogMessage = "";
-            bool apiFileListStatus, apiSyncCheckStatus = false, apiDeleteCheckStatus = false;
-
-            RsyncSetting.SettingNetworkDevice();
-            
-            if (fileList != null)
-            {
-                apiFileListStatus = true;
-
-                IFolder rsyncFolder = new Folder();
-                rsyncLogMessage = rsyncFolder.CreateFolder(RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncLog", "Path"), false);
-
-                WriteFolderLog(rsyncLogMessage);
-
-                var syncFactoryData = fileList["syncdata"];
-                var syncFactoryDeleteData = fileList["deletedata"];
-
-                foreach (var syncFileList in syncFactoryData)
+                Log.WriteLog("Ping(" + count + ") " + host + " ...");
+                reply = ping.Send(host, timeout);
+                if (reply.Status == IPStatus.Success)
                 {
-                    apiSyncCheckStatus = true;
-                    apiFileSource = syncFileList["source"].ToString();
-                    apiFileTarget = syncFileList["target"].ToString();
+                    Log.WriteLog("Ping " + host + " is OK.");
+                    isConnect = true;
+                }
+            }
+            return isConnect;
+        }
 
-                    RsyncSetting.XmlSetting.apiRsyncFileID = syncFileList["id"].ToString();
+        private static string GetReplaceHostPath(string originPath)
+        {
+            string newPath = "";
+            var chunks = originPath.Split('\\');
+            chunks.ToList().ForEach(e =>
+            {
+                if (!string.IsNullOrWhiteSpace(newPath))
+                    newPath += "\\";
+                newPath += e;
+            });
 
-                    RsyncSetting.XmlSetting.apiRsyncFileListCheckSum = RsyncSetting.XmlSetting.apiRsyncFileListCheckSum + syncFileList["id"] + ",";
+            if (newPath.Split('\\')[0].ToLower() == RsyncSetting.Config.SourceServerHost)
+                newPath = RsyncSetting.Config.SourceServerIP + newPath.Substring(newPath.IndexOf('\\'));
+            else if (newPath.Split('\\')[0].ToLower() == RsyncSetting.Config.TargetServerHost)
+                newPath = RsyncSetting.Config.TargetServerIp + newPath.Substring(newPath.IndexOf('\\'));
+            return newPath = "\\\\" + newPath;
+        }
 
-                    rsyncSourceFolder = FileList(ref apiFileSource, false);
-                    rsyncTargetFolder = FileList(ref apiFileTarget, true);
-                    try
+        private static void SyncData(IEnumerable<dynamic> syncDataList)
+        {
+            var errorMessage = "";
+            string id, size, sourcePath, targetPath;
+            var rsyncCmd = new RsyncCommand();
+            SyncResultRecords.SyncResult resultRecord;
+            foreach (var syncData in syncDataList)
+            {
+                id = size = sourcePath = targetPath = "";
+                try
+                {
+                    id = syncData.id;
+                    size = "";
+                    sourcePath = GetReplaceHostPath(syncData.source.ToString());
+                    targetPath = GetReplaceHostPath(syncData.target.ToString());
+                    Log.WriteLog("Start sync to factory.(id:" + id + ")");
+                    Log.WriteLog(sourcePath + " -> " + targetPath);
+                    if (!File.Exists(sourcePath))
                     {
-                        FileInfo file = new FileInfo(rsyncSourceFolder);
-                        RsyncSetting.XmlSetting.apiRsyncFileSize = file.Length.ToString();
-                        var factory_folder_create = "/" + RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Folder");
-                        apiRsyncCreateTargetFolder = apiRsyncCreateTargetFolder.Replace(factory_folder_create, "");
-                        targetCreateFolderMessage = rsyncFolder.CreateFolder(apiRsyncCreateTargetFolder, false);
-                        WriteFolderLog(targetCreateFolderMessage);
+                        Log.WriteLog("No such file or directory.", Log.Type.Failed);
+                        resultRecord = new SyncResultRecords.SyncResult
+                        {
+                            Id = id,
+                            Size = size,
+                            FinishTime = RsyncDateTime.GetNow(RsyncDateTime.TimeFormatType.YearSMonthSDateTimeChange),
+                            SourcePath = sourcePath,
+                            TargetPath = targetPath,
+                            Status = "Failed",
+                            Message = "No such file or directory.",
+                        };
+                        errorMessage = UpdateStatus(new List<SyncResultRecords.SyncResult> { resultRecord });
                     }
-                    catch (Exception e)
+                    else
                     {
-                        if (e.Message.Contains(apiFileSource))
-                        {
-                            RsyncSetting.XmlSetting.apiRsyncFileSize = "-1";
-                        }
-                        else
-                        {
-                            RsyncSetting.XmlSetting.apiRsyncFileSize = "-2";
-                        }
+                        FileInfo file = new FileInfo(sourcePath);
+                        size = file.Length.ToString();
 
-                        Console.WriteLine(e.Message);
+                        rsyncCmd.ExeSyncCmd(sourcePath, targetPath);
+                        if (rsyncCmd.ErrorMessage != "")
+                            throw new Exception(rsyncCmd.ErrorMessage);
+                        resultRecord = new SyncResultRecords.SyncResult
+                        {
+                            Id = id,
+                            Size = size,
+                            FinishTime = RsyncDateTime.GetNow(RsyncDateTime.TimeFormatType.YearSMonthSDateTimeChange),
+                            SourcePath = sourcePath,
+                            TargetPath = targetPath,
+                            Status = "Success",
+                            Message = targetPath.Replace("\\", "/") + " is already sync to factory.",
+                        };
+                        errorMessage = UpdateStatus(new List<SyncResultRecords.SyncResult> { resultRecord });
                     }
-                    var syncFactoryFolder = "/" + RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Folder");
-                    rsyncTargetFolder = rsyncTargetFolder.Replace(syncFactoryFolder, "");
-                    rsyncExe.ExeCommand(rsyncSourceFolder, rsyncTargetFolder, false);
-                    fileIndex++;
                 }
-
-                foreach (var syncFileDeleteList in syncFactoryDeleteData)
+                catch (Exception e)
                 {
-                    apiDeleteCheckStatus = true;
-                    apiFileTarget = syncFileDeleteList["target"].ToString();
-
-                    RsyncSetting.XmlSetting.apiRsyncFileID = syncFileDeleteList["id"].ToString();
-
-                    rsyncSourceFolder = FileList(ref apiFileSource, false);
-                    rsyncTargetFolder = FileList(ref apiFileTarget, true);
-
-                    var syncDeleteFactoryFolder = "/" + RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Folder");
-                    apiRsyncCreateTargetFolder = apiRsyncCreateTargetFolder.Replace(syncDeleteFactoryFolder, "");
-                    rsyncExe.ExeCommand(emailRsyncTargetFolder, apiRsyncCreateTargetFolder, true);
-                    fileIndex++;
+                    Log.WriteLog(e.Message, Log.Type.Exception);
+                    resultRecord = new SyncResultRecords.SyncResult
+                    {
+                        Id = id,
+                        Size = size,
+                        FinishTime = RsyncDateTime.GetNow(RsyncDateTime.TimeFormatType.YearSMonthSDateTimeChange),
+                        SourcePath = sourcePath,
+                        TargetPath = targetPath,
+                        Status = "Failed",
+                        Message = targetPath.Replace("\\", "/") + " sync is failed.",
+                    };
+                    errorMessage = UpdateStatus(new List<SyncResultRecords.SyncResult> { resultRecord });
                 }
-                if (!apiSyncCheckStatus && !apiDeleteCheckStatus)
+
+                if (errorMessage != "")
                 {
-                    apiGetApiStatus = true;
+                    resultRecord.Status = "Failed";
+                    resultRecord.Message += (resultRecord.Message != "" ? " " : "") + errorMessage;
                 }
+
+                SyncResultRecords.Add(resultRecord);
+                Log.WriteLog("Sync to factory is finish.");
             }
-            else
-            {
-                apiFileListStatus = false;
-            }
-            return apiFileListStatus;
         }
 
-        public static void LoginTargetServer()
+        private static void DeleteData(IEnumerable<dynamic> delDataList)
         {
-            bool login;
-
-            dynamic exe = new NetCommand();
-            login = exe.ExeCommand();
-
-            if (login)
+            var errorMessage = "";
+            string id, size, sourcePath, targetPath;
+            var rsyncCmd = new RsyncCommand();
+            SyncResultRecords.SyncResult resultRecord;
+            foreach (var delData in delDataList)
             {
-                var targetIP = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "IP");
-                var testTargetIP = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "TestIP");
-                bool isTest = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Test").ToLower() == "true" ? true : false;
-
-                var masterIP = isTest ? testTargetIP : targetIP;
-                if (GetRestFactoryStatus(masterIP))
+                id = size = sourcePath = targetPath = "";
+                try
                 {
-                    rsyncLogLength = 0;
-                    ResponseFileListApi();
-                    CheckRunBookDueDate();
+                    id = delData.id;
+                    size = "";
+                    targetPath = GetReplaceHostPath(delData.target.ToString());
+                    Log.WriteLog("Start delete from factory.(id:" + id + ")");
+                    Log.WriteLog("targetPath :" + targetPath);
+
+                    var targetDir = string.Join("\\", targetPath.Split('\\').Take(targetPath.Split('\\').Length - 1));
+                    if (Directory.Exists(targetDir))
+                        Directory.Delete(targetDir, true);
+
+                    resultRecord = new SyncResultRecords.SyncResult
+                    {
+                        Id = id,
+                        Size = size,
+                        FinishTime = RsyncDateTime.GetNow(RsyncDateTime.TimeFormatType.YearSMonthSDateTimeChange),
+                        SourcePath = sourcePath,
+                        TargetPath = targetPath,
+                        Status = "Success",
+                        Message = targetPath.Replace("\\", "/") + " deleted is success.",
+                    };
+                    errorMessage = UpdateStatus(new List<SyncResultRecords.SyncResult> { resultRecord });
+                }
+                catch (Exception e)
+                {
+                    Log.WriteLog(e.Message, Log.Type.Exception);
+                    resultRecord = new SyncResultRecords.SyncResult
+                    {
+                        Id = id,
+                        Size = size,
+                        FinishTime = RsyncDateTime.GetNow(RsyncDateTime.TimeFormatType.YearSMonthSDateTimeChange),
+                        SourcePath = sourcePath,
+                        TargetPath = targetPath,
+                        Status = "Failed",
+                        Message = targetPath.Replace("\\", "/") + " deleted is failed.",
+                    };
+                    errorMessage = UpdateStatus(new List<SyncResultRecords.SyncResult> { resultRecord });
+                }
+
+                if (errorMessage != "")
+                {
+                    resultRecord.Status = "Failed";
+                    resultRecord.Message += (resultRecord.Message != "" ? " " : "") + errorMessage;
+                }
+                SyncResultRecords.Add(resultRecord);
+                Log.WriteLog("Delete from factory is finish.");
+            }
+        }
+
+        private static string UpdateStatus(List<SyncResultRecords.SyncResult> syncResultList)
+        {
+            var errorMsg = "";
+            var updateList = new List<ApiService.UpdateInfo>();
+            syncResultList.ForEach(e =>
+            {
+                updateList.Add(new ApiService.UpdateInfo
+                {
+                    id = e.Id,
+                    size = e.Size,
+                    status = (e.Status.ToLower() == "failed" || e.Status.ToLower() == "exception") ? "error" : "success",
+                    message = e.Message,
+                });
+            });
+
+            if (updateList.Count > 0)
+            {
+                ApiService api = new ApiService();
+                errorMsg = api.UpdateFileStatus(updateList);
+            }
+            return errorMsg;
+        }
+
+        private static string GenerateResultMessage(List<SyncResultRecords.SyncResult> results)
+        {
+            string message = "";
+            var count = 0;
+            results.ForEach(e =>
+            {
+                count++;
+                if (e.Status.ToLower() == "failed" || e.Status.ToLower() == "exception")
+                {
+                    message += "<tr><td bgcolor = \"#EEF4FD\" width = \"2%\"><font size = \"2\" face = \"Verdana, sans-serif\">" + count + "</font></td>"
+                          + "<td bgcolor = \"#f28c9b\" width = \"12%\"><font size = \"2\" face = \"Verdana, sans-serif\">" + e.FinishTime + "</font></td>"
+                          + "<td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + e.SourcePath.Replace("\\", "/") + "</font></td>"
+                          + "<td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\"> " + e.Message + "</font></td></tr>";
                 }
                 else
                 {
-                    CheckRunBookDueDate();
-                    var getRunBookStatus = ResetFactoryApi.RestFactoryGatway();
-                    JObject getRunBookID = (JObject)JsonConvert.DeserializeObject(getRunBookStatus);
-
-                    //if (testStatus == "true")
-                    //{
-                    //    GetRestFactoryStatus(testTargetIP);
-                    //}
-
-                    if (GetRestFactoryStatus(targetIP))
-                    {
-                        rsyncLogLength = 0;
-                        ResponseFileListApi();
-                    }
+                    message += "<tr><td bgcolor = \"#EEF4FD\" width = \"2%\"><font size = \"2\" face = \"Verdana, sans-serif\">" + count + "</font></td>"
+                          + "<td bgcolor = \"#EEF4FD\" width = \"12%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + e.FinishTime + "</font></td>"
+                          + "<td width = \"55%\"><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + e.SourcePath.Replace("\\", "/") + "</font></td>"
+                          + "<td width = \"30%\" ><font color = \"#4A72A2\" size = \"2\" face = \"Verdana, sans-serif\">" + e.Message + "</font></td></tr>";
                 }
-            }
-            else
-            {
-                rsyncLogLength = -1;
-            }
-        }
-
-        public static void CheckRunBookDueDate()
-        {
-            var webhookDueDate = RsyncSetting.GetRsyncConf("RsyncSetting/RestFactoryGatway", "DueDate");
-            var dueDate = RsyncDateTime.DifferentDateTime(webhookDueDate);
-            var tmpLength = rsyncLogLength;
-            var notificationDueDate = Convert.ToInt32(RsyncSetting.GetRsyncConf("RsyncSetting/RestFactoryGatway", "Notification"));
-
-            if (-notificationDueDate < dueDate / 60)
-            {
-                rsyncLogLength = -6;
-                rsyncExe.SendEmailLog(rsyncLog, rsyncLogLength);
-                rsyncLogLength = tmpLength;
-            }
-        }
-
-        public static bool GetRestFactoryStatus(string getTargtIP)
-        {
-            bool getFactoryStatus;
-
-            var pingLimit = Convert.ToInt32(RsyncSetting.GetRsyncConf("RsyncSetting/Ping", "delay"));
-
-            Ping pingSender = new Ping();
-            PingReply reply = pingSender.Send(getTargtIP, pingLimit);
-
-            if (reply.Status == IPStatus.Success)
-            {
-                getFactoryStatus = true;
-                Console.WriteLine("Ping " + getTargtIP + " is success");
-                RsyncDateTime.WriteLog("Ping " + getTargtIP + " is success");
-            }
-            else
-            {
-                getFactoryStatus = false;
-                Console.WriteLine("Ping " + getTargtIP + " request out");
-                RsyncDateTime.WriteLog("Ping " + getTargtIP + " request out");
-            }
-
-            return getFactoryStatus;
-        }
-
-        public static void ResponseFileListApi()
-        {
-            if (GetFileListApi())
-            {
-                if (!apiGetApiStatus)
-                {
-                    rsyncLogLength = rsyncLog.GetRsyncLogLength;
-
-                }
-                else
-                {
-                    rsyncLogLength = -5;
-                }
-            }
-            else
-            {
-                rsyncLogLength = -4;
-            }
+            });
+            return message;
         }
     }
 }

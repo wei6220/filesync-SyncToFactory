@@ -1,160 +1,143 @@
-﻿using DownloadCenterRsyncBaseSetting;
-using DownloadCenterRsyncDateTime;
-using System;
+﻿using System;
 using System.Xml;
 
-namespace DownloadCenterRsyncSetting
+namespace DownloadCenter
 {
-    class RsyncSetting : RsyncBaseSetting
+    class RsyncSetting
     {
-        static XmlDocument doc;
-        
-        public static string GetRsyncConf(string rsyncSetting, string value)
+        #region Get Xml Setting
+        public struct Config
+        {
+            public static string LogPath = "";
+            public static string LogFileName = "";
+            public static string RsyncExeName = "";
+            public static string RsyncExePath = "";
+            public static string RsyncExeOption = "";
+            public static string SourceServerHost = "";
+            public static string SourceServerFolder = "";
+            public static string SourceServerIP = "";
+            public static string SourceServerLogin = "";
+            public static string SourceServerPassword = "";
+            public static string TargetServerHost = "";
+            public static string TargetServerFolder = "";
+            public static string TargetServerIp = "";
+            public static string TargetServerLogin = "";
+            public static string TargetServerPassword = "";
+            public static bool TargetServerTest = false;
+
+            public static string RsyncExeLogPath = "";
+            public static string RsyncExeLogFileName = "";
+            public static string FileListApiUrl = "";
+            public static string FileUpdateStatusApiUrl = "";
+            public static string PingTimeout = "";
+            public static string PingRepeat = "";
+            public static string RestFactoryGatwayUrl = "";
+            public static string RestFactoryGatwayDueDate = "";
+            public static string RestFactoryGatwayNotification = "";
+            public static string EmailUrl = "";
+            public static string EmailCC = "";
+            public static string EmailSubject = "";
+        };
+        private static XmlDocument _settingDoc;
+        private static void LoadSettingDoc()
+        {
+            _settingDoc = new XmlDocument();
+            _settingDoc.Load("RsyncSetting.xml");
+        }
+        private static string GetSettingDocAttrValue(string nodePath, string attrKey)
         {
             string data = "";
-
             try
             {
-                doc = new XmlDocument();
-                doc.Load("RsyncSetting.xml");
-                XmlNode main = doc.SelectSingleNode(rsyncSetting);
-                XmlElement element = (XmlElement)main;
-                data = element.GetAttribute(value);
+                if (_settingDoc == null)
+                    LoadSettingDoc();
+                XmlElement element = (XmlElement)_settingDoc.SelectSingleNode(nodePath);
+                data = element.GetAttribute(attrKey);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
             return data;
         }
-
-        public static void SettingScheduleLog()
+        public static void SetConfigSettings() {
+            SetTargetServerConfig();
+            SetRsyncExeConfig();
+            SetApiUrlConfig();
+            SetRestFactoryGatwayConfig();
+            SetEmailConfig();
+            SetOtherConfig();
+        }
+        public static void SetTargetServerConfig()
         {
-            XmlSetting.rsyncScheduleLogPath = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/DownloadCenterLog", "Path");
-            XmlSetting.rsyncScheduleLogFile = RsyncSetting.GetRsyncConf("RsyncSetting/RsyncExe/DownloadCenterLog", "File");
+            Config.SourceServerIP = GetSettingDocAttrValue("RsyncSetting/SourceServer", "Ip");
+            Config.SourceServerLogin = GetSettingDocAttrValue("RsyncSetting/SourceServer", "Login");
+            Config.SourceServerPassword = GetSettingDocAttrValue("RsyncSetting/SourceServer", "Pwd");
+            Config.SourceServerHost = GetSettingDocAttrValue("RsyncSetting/SourceServer", "Host");
+            Config.SourceServerFolder = GetSettingDocAttrValue("RsyncSetting/SourceServer", "Folder");
+
+            Config.TargetServerIp = GetSettingDocAttrValue("RsyncSetting/TargetServer", "IP");
+            Config.TargetServerLogin = GetSettingDocAttrValue("RsyncSetting/TargetServer", "Login");
+            Config.TargetServerPassword = GetSettingDocAttrValue("RsyncSetting/TargetServer", "Pwd");
+            Config.TargetServerHost = GetSettingDocAttrValue("RsyncSetting/TargetServer", "Host");
+            Config.TargetServerFolder = GetSettingDocAttrValue("RsyncSetting/TargetServer", "Folder");
+            Config.TargetServerTest = (GetSettingDocAttrValue("RsyncSetting/TargetServer", "Test").ToLower() == "true") ? true : false;
+        }
+        public static void SetRsyncExeConfig()
+        {
+            Config.RsyncExeName = GetSettingDocAttrValue("RsyncSetting/RsyncExe", "Command");
+            Config.RsyncExePath = GetSettingDocAttrValue("RsyncSetting/RsyncExe", "Path");
+            Config.RsyncExeOption = GetSettingDocAttrValue("RsyncSetting/RsyncExe/Option/RsyncParameter", "Option");
+            Config.RsyncExeLogFileName = GetSettingDocAttrValue("RsyncSetting/RsyncExe/RsyncLog", "File");
+            Config.RsyncExeLogPath = GetSettingDocAttrValue("RsyncSetting/RsyncExe/RsyncLog", "Path");
+        }
+        public static void SetApiUrlConfig()
+        {
+            Config.FileListApiUrl = GetSettingDocAttrValue("RsyncSetting/FileListApi", "URL");
+            Config.FileUpdateStatusApiUrl = GetSettingDocAttrValue("RsyncSetting/FileUpdateFinishApi", "URL");
+        }
+        public static void SetRestFactoryGatwayConfig()
+        {
+            Config.RestFactoryGatwayUrl = GetSettingDocAttrValue("RsyncSetting/RestFactoryGatway", "URL");
+            Config.RestFactoryGatwayDueDate = GetSettingDocAttrValue("RsyncSetting/RestFactoryGatway", "DueDate");
+            Config.RestFactoryGatwayNotification = GetSettingDocAttrValue("RsyncSetting/RestFactoryGatway", "Notification");
+        }
+        public static void SetEmailConfig()
+        {
+            Config.EmailUrl = GetSettingDocAttrValue("RsyncSetting/Email", "URL");
+            Config.EmailCC = GetSettingDocAttrValue("RsyncSetting/Email/Option", "CC");
+            Config.EmailSubject = GetSettingDocAttrValue("RsyncSetting/Email/Subject", "Content");
+        }
+        public static void SetOtherConfig()
+        {
+            Config.PingTimeout = GetSettingDocAttrValue("RsyncSetting/Ping", "Timeout");
+            Config.PingRepeat = GetSettingDocAttrValue("RsyncSetting/Ping", "Repeat");
+            Config.LogPath = GetSettingDocAttrValue("RsyncSetting/DownloadCenterLog", "Path");
+            Config.LogFileName = GetSettingDocAttrValue("RsyncSetting/DownloadCenterLog", "File");
+        }
+        #endregion
+
+        public struct RuntimeSettings
+        {
+            public static string ScheduleStartTime = "";
+            public static string RsyncResultMessage = "";
         }
 
-        public static void SettingTargetServer()
+        public static string GetRsyncLogFileFullPath()
         {
-            XmlSetting.targetServerIP  = RsyncSetting.GetRsyncConf("RsyncSetting/TargetServer", "Ip");
-            XmlSetting.targetServerLogin = RsyncSetting.GetRsyncConf("RsyncSetting/TargetServer", "Login");
-            XmlSetting.targetServerPassword = RsyncSetting.GetRsyncConf("RsyncSetting/TargetServer", "Pwd");
-        }
-
-        public static void SettingNetworkDevice()
-        {
-            XmlSetting.networkMountDevice = GetRsyncConf("RsyncSetting/NetworkDevice", "Path");
-            XmlSetting.targetServerIP = GetRsyncConf("RsyncSetting/TargetServer", "Ip");
-        }
-
-        public static void SettingRsyncExeConfig()
-        {
-            XmlSetting.exeCommand = GetRsyncConf("RsyncSetting/RsyncExe", "Command");
-            XmlSetting.exeCommandPath = GetRsyncConf("RsyncSetting/RsyncExe", "Path");
-            XmlSetting.exeCommandOption = GetRsyncConf("RsyncSetting/RsyncExe/Option/RsyncParameter", "Option");
-            XmlSetting.exeCommandFromSource = GetRsyncConf("RsyncSetting/RsyncExe/RsyncSource", "Host");
-            XmlSetting.exeCommandFromSourceFolder = GetRsyncConf("RsyncSetting/RsyncExe/RsyncSource", "Folder");
-            XmlSetting.exeCommandToTarget = GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Host");
-            XmlSetting.exeCommandToTargetFolder = GetRsyncConf("RsyncSetting/RsyncExe/RsyncTarget", "Folder");
-            XmlSetting.exeCommandLogFile = GetRsyncConf("RsyncSetting/RsyncExe/RsyncLog", "File");
-            XmlSetting.exeCommandLogPath = GetRsyncConf("RsyncSetting/RsyncExe/RsyncLog", "Path");
-            XmlSetting.exeCommandGetLogPath = GetRsyncConf("RsyncSetting/RsyncExe/RsyncLog", "Path");
-            SettingRsyncFolder(ref XmlSetting.exeCommandFromSourceFolder, false);
-            SettingRsyncFolder(ref XmlSetting.exeCommandToTargetFolder, false);
-            SettingRsyncFolder(ref XmlSetting.exeCommandLogPath, true);
-        }
-
-        public struct XmlSetting
-        {
-            public static string exeCommand = "";
-            public static string exeCommandPath = "";
-            public static string exeCommandOption = "";
-            public static string exeCommandFromSource = "";
-            public static string exeCommandToTarget = "";
-            public static string exeCommandFromSourceFolder = "";
-            public static string exeCommandToTargetFolder = "";
-            public static string exeCommandLogPath = "";
-            public static string exeCommandLogFile = "";
-            public static string exeCommandGetLogPath = "";
-            public static string exeCommandStartTime = "";
-            public static string exeCommandFinishTime = "";
-            public static string networkMountDevice = "";
-            public static string targetServerIP = "";
-            public static string apiRsyncSourceFolder = "";
-            public static string apiRsyncTargetFolder = "";
-            public static string apiRsyncFileID = "";
-            public static string apiRsyncFileSize = "";
-            public static string apiRsyncFileStatus = "";
-            public static string apiRsyncFileMessage = "";
-            public static string apiRsyncFileListCheckSum = "";
-            public static string targetServerIP1 = "";
-            public static string targetServerLogin = "";
-            public static string targetServerPassword = "";
-            public static string rsyncScheduleLogPath = "";
-            public static string rsyncScheduleLogFile = "";
-        };
-
-        public static void RsyncCygdriveFolder(ref string cygdriveBackupFolder, ref string rysncFolderPath)
-        {
-            string[] rsyncSyncFolderList;
-            int i = 0;
-
-            rsyncSyncFolderList = cygdriveBackupFolder.Split(new char[] { '\\', '/' });
-
-            foreach (string folderName in rsyncSyncFolderList)
+            string LogPath = Config.RsyncExeLogPath;
+            if (!(LogPath.Substring(LogPath.Length - 1) == "/"
+                || LogPath.Substring(LogPath.Length - 1) == "\\"))
             {
-                if (i++ != 0)
-                {
-                    rysncFolderPath += "/";
-                }
-                rysncFolderPath += folderName.Replace(":", "");
+                LogPath += "\\";
             }
+            return ConvertToRsyncFormat(LogPath +
+                RsyncDateTime.GetNow(RsyncDateTime.TimeFormatType.YearMonthDate) + "_" + Config.RsyncExeLogFileName);
         }
 
-        public static void SettingRsyncFolder(ref string rsyncFolder, Boolean rsyncLogFolderFlag)
+        public static string ConvertToRsyncFormat(string originPath)
         {
-            string rsyncCommandSyncFolder;
-
-            if (rsyncFolder.Length >= 2)
-            {
-                if (rsyncFolder.IndexOf("\\\\", 0, 2) >= 0 || rsyncFolder.IndexOf("//", 0, 2) >= 0)
-                {
-                    rsyncCommandSyncFolder = "";
-                }
-                else
-                {
-                    rsyncCommandSyncFolder = "/cygdrive/";
-                }
-            }
-            else
-            {
-                rsyncCommandSyncFolder = "";
-            }
-       
-            RsyncCygdriveFolder(ref rsyncFolder, ref rsyncCommandSyncFolder);
-            
-            if (!(rsyncFolder.Substring(rsyncFolder.Length - 1) == "/" || rsyncFolder.Substring(rsyncFolder.Length - 1) == "\\"))
-            {
-                if (rsyncLogFolderFlag)
-                {
-                    rsyncCommandSyncFolder = rsyncCommandSyncFolder + "/";
-                }
-            }
-            rsyncFolder = rsyncCommandSyncFolder;
-        }
-
-        public string GetRsyncConfigSetting(string rsyncSetting, string rsyncValue)
-        {
-            string xmlData = "";
-
-            xmlData = GetRsyncConfig(rsyncSetting, rsyncValue);
-
-            if (xmlConfigError)
-            {
-                RsyncDateTime.WriteLog("[Download Center][Exception]" + xmlData);
-            }
-
-            return xmlData;
+            return originPath.Replace('\\', '/');
         }
     }
 }

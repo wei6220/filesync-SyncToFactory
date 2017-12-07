@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8" ?> 
+<RsyncSetting>
+  <DownloadCenterLog Path="Log\"></DownloadCenterLog>
+  <RsyncExe Command="rsync.exe" Path="C:/grsync/bin/">
+    <RsyncLog File="rsync.log" Path="C:/grsync/log/test/"></RsyncLog>
+    <Option>
+       <RsyncParameter Option="-r -t -v  --progress"></RsyncParameter>
+     </Option>
+  </RsyncExe>
+  <Email URL="http://dfiintrtrains.eastasia.cloudapp.azure.com:8087/uas/api/notification/send">
+        <Option CC="jerry.chen@dfi.com"></Option>
+        <Subject Content="【Download Center Batch】Sync Factory Schedule"></Subject>
+  </Email>
+  <SourceServer Ip="172.18.0.36" Login="misd\swservice" Pwd="A123456" Host="dfi_rd_server" Folder="//DFI_RD_SERVER/Software/Release/carsonrsynctest"></SourceServer>
+  <TargetServer IP="jj-2.dfi.com.tw" Login="jj-2" Pwd="&quot;&quot;" Host="jj-2" Folder="Software" TmpFolder="tmp" Test="false"></TargetServer>
+  <Ping Timeout="60000" Repeat="5"></Ping>  
+  <RestFactoryGatway URL="https://s3events.azure-automation.net/webhooks?token=0Ogb92GWpOKr0EOaAIEHX69ZyYNtOi1JFH94%2fTnKUpA%3d" DueDate="2017/11/6 17:32:30" Notification="7920"></RestFactoryGatway>
+  <FileListApi URL="http://dfiintrtrains.eastasia.cloudapp.azure.com:8087/DownloadCenter/api/public/getfactorypathmap"></FileListApi>
+  <FileUpdateFinishApi URL="http://dfiintrtrains.eastasia.cloudapp.azure.com:8087/DownloadCenter/api/public/UpdatefactoryStatus"></FileUpdateFinishApi>
+</RsyncSetting>

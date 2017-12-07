@@ -75,26 +75,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ResetFactoryApi.cs" />
-    <Compile Include="RsyncProcess.cs" />
-    <Compile Include="FileUpdateFinishApi.cs" />
-    <Compile Include="FileListApi.cs" />
-    <Compile Include="RsyncBaseLog.cs" />
-    <Compile Include="RsyncBaseCmd.cs" />
-    <Compile Include="RsyncBaseSetting.cs" />
-    <Compile Include="RsyncBaseTime.cs" />
-    <Compile Include="RsyncSchedule.cs" />
-    <Compile Include="NetCommand.cs" />
-    <Compile Include="DownloadCenterSendEmail.cs" />
+    <Compile Include="Services\ApiService.cs" />
+    <Compile Include="Components\Log.cs" />
+    <Compile Include="Components\BaseCommand.cs" />
+    <Compile Include="Components\NetCommand.cs" />
+    <Compile Include="Services\Mail.cs" />
     <Compile Include="RsyncSetting.cs" />
-    <Compile Include="RsyncDateTime.cs" />
-    <Compile Include="Folder.cs" />
-    <Compile Include="DownloadCenterEmailTemplate.cs" />
-    <Compile Include="DownloadCenterLog.cs" />
-    <Compile Include="RsyncCommand.cs" />
+    <Compile Include="Components\RsyncDateTime.cs" />
+    <Compile Include="Components\RsyncCommand.cs" />
     <Compile Include="DownloadCenterControl.cs" />
-    <Compile Include="IFolder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SyncResultRecords.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
