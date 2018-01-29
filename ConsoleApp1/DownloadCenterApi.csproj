@@ -100,7 +100,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\library-ApplicationCommonLibrary\CommonLibrary.csproj">
+    <ProjectReference Include="..\library-ApplicationCommonLibrary\src\CommonLibrary.csproj">
       <Project>{ccecc2ec-fb00-4366-a8e2-03a35826fff0}</Project>
       <Name>CommonLibrary</Name>
     </ProjectReference>
